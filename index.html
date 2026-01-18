@@ -36,6 +36,8 @@
                 modeResolutionDesc: 'Obtenez de l\'aide pour résoudre des exercices étape par étape',
                 modePro: 'Mode Pro',
                 modeProDesc: 'Analyses approfondies, recherche académique et projets avancés pour études supérieures',
+                modeLanguages: 'Apprentissage des Langues',
+                modeLanguagesDesc: 'Apprenez une nouvelle langue avec des exercices personnalisés',
                 aboutTitle: 'À propos de Lernen.IA',
                 developedBy: 'Développé par Jules',
                 studentAt: 'Étudiant en Bac Pro CIEL à St François d\'Assise',
@@ -57,6 +59,8 @@
                 modeResolutionDesc: 'Get help to solve exercises step by step',
                 modePro: 'Pro Mode',
                 modeProDesc: 'In-depth analysis, academic research and advanced projects for higher education',
+                modeLanguages: 'Language Learning',
+                modeLanguagesDesc: 'Learn a new language with personalized exercises',
                 aboutTitle: 'About Lernen.IA',
                 developedBy: 'Developed by Jules',
                 studentAt: 'Student in Bac Pro CIEL at St François d\'Assise',
@@ -76,6 +80,8 @@
                 modeQuizDesc: 'Test your knowledge with interactive quizzes and get instant scores',
                 modeResolution: 'Problem Solving Mode',
                 modeResolutionDesc: 'Solve exercises step by step with detailed corrections',
+                modeLanguages: 'Language Learning',
+                modeLanguagesDesc: 'Learn a new language with personalized exercises',
                 aboutTitle: 'About Lernen.IA',
                 developedBy: 'Developed by Jules',
                 studentAt: 'Student in Bac Pro CIEL at St François d\'Assise',
@@ -97,6 +103,8 @@
                 modeResolutionDesc: 'Erhalten Sie Hilfe beim schrittweisen Lösen von Übungen',
                 modePro: 'Pro-Modus',
                 modeProDesc: 'Vertiefte Analysen, akademische Forschung und fortgeschrittene Projekte für Hochschulbildung',
+                modeLanguages: 'Sprachenlernen',
+                modeLanguagesDesc: 'Lernen Sie eine neue Sprache mit personalisierten Übungen',
                 aboutTitle: 'Über Lernen.IA',
                 developedBy: 'Entwickelt von Jules',
                 studentAt: 'Student in Bac Pro CIEL an St François d\'Assise',
@@ -118,12 +126,21 @@
                 modeResolutionDesc: 'Obtén ayuda para resolver ejercicios paso a paso',
                 modePro: 'Modo Pro',
                 modeProDesc: 'Análisis profundos, investigación académica y proyectos avanzados para estudios superiores',
+                modeLanguages: 'Aprendizaje de Idiomas',
+                modeLanguagesDesc: 'Aprende un nuevo idioma con ejercicios personalizados',
                 aboutTitle: 'Acerca de Lernen.IA',
                 developedBy: 'Desarrollado por Jules',
                 studentAt: 'Estudiante de Bac Pro CIEL en St François d\'Assise',
                 tagline: 'Estudia y practica con inteligencia artificial'
             }
         };
+
+        const availableLanguages = [
+            'Anglais', 'Espagnol', 'Allemand', 'Italien', 'Portugais', 'Chinois',
+            'Japonais', 'Coréen', 'Arabe', 'Russe', 'Néerlandais', 'Suédois',
+            'Norvégien', 'Danois', 'Finnois', 'Polonais', 'Tchèque', 'Hongrois',
+            'Turc', 'Grec', 'Hébreu', 'Hindi', 'Thaï', 'Vietnamien'
+        ];
 
         const educationSystems = {
             france: {
@@ -255,8 +272,49 @@
             
             if (state.mode === 'revision' || state.mode === 'quiz' || state.mode === 'resolution' || state.mode === 'pro' || state.mode === 'languages') {
                 app.innerHTML = renderChatView();
+                setTimeout(() => setupEventListeners(), 0);
             } else {
                 app.innerHTML = renderMenuView();
+                setTimeout(() => setupMenuListeners(), 0);
+            }
+        }
+
+        function setupEventListeners() {
+            const inputEl = document.getElementById('input-text');
+            const btnSend = document.getElementById('btn-send');
+            
+            if (inputEl) {
+                inputEl.addEventListener('input', (e) => {
+                    state.inputText = e.target.value;
+                    // Update button state
+                    if (btnSend) {
+                        if (state.inputText.trim() && !state.isLoading) {
+                            btnSend.disabled = false;
+                            btnSend.classList.remove('opacity-50', 'cursor-not-allowed');
+                        } else {
+                            btnSend.disabled = true;
+                            btnSend.classList.add('opacity-50', 'cursor-not-allowed');
+                        }
+                    }
+                });
+                
+                inputEl.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        sendMessage();
+                    }
+                });
+            }
+
+            // Reset button in chat
+            const btnReset = document.getElementById('btn-reset');
+            if (btnReset) {
+                btnReset.addEventListener('click', resetSession);
+            }
+
+            // Send button in chat
+            if (btnSend) {
+                btnSend.addEventListener('click', sendMessage);
             }
         }
 
@@ -268,6 +326,7 @@
             else if (state.mode === 'resolution') modeTitle = '✅ ' + t.modeResolution;
             else if (state.mode === 'pro') modeTitle = '🎓 ' + t.modePro;
             else if (state.mode === 'languages') modeTitle = '🌍 ' + t.modeLanguages;
+            
             const messagesHTML = state.messages.map((msg, idx) => `
                 <div class="flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}">
                     <div class="max-w-3xl rounded-2xl p-4 ${msg.role === 'user' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-800'}">
@@ -299,7 +358,7 @@
                                     </h2>
                                     <p class="text-indigo-100 mt-1">${state.selectedSubject} - ${educationSystems[state.selectedCountry].levels[state.selectedLevel].name}</p>
                                 </div>
-                                <button onclick="resetSession()" class="bg-white text-indigo-600 px-4 py-2 rounded-lg font-semibold hover:bg-indigo-50 transition">
+                                <button id="btn-reset" class="bg-white text-indigo-600 px-4 py-2 rounded-lg font-semibold hover:bg-indigo-50 transition">
                                     ${t.change}
                                 </button>
                             </div>
@@ -314,17 +373,16 @@
                             <div class="flex gap-2">
                                 <textarea 
                                     id="input-text"
-                                    placeholder="Posez votre question ou demandez un exercice..."
+                                    placeholder="${t.placeholder}"
                                     class="flex-1 border rounded-xl p-3 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                     rows="2"
-                                    onkeypress="handleKeyPress(event)"
                                 >${state.inputText}</textarea>
                                 <button 
-                                    onclick="sendMessage()"
-                                    ${state.isLoading || !state.inputText.trim() ? 'disabled' : ''}
-                                    class="bg-indigo-600 text-white px-6 rounded-xl font-semibold hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                    id="btn-send"
+                                    disabled
+                                    class="bg-indigo-600 text-white px-6 rounded-xl font-semibold hover:bg-indigo-700 transition opacity-50 cursor-not-allowed"
                                 >
-                                    Envoyer
+                                    ${t.send}
                                 </button>
                             </div>
                         </div>
@@ -348,7 +406,7 @@
                             Lernen.IA
                         </h1>
                         <p class="text-xl text-gray-600">${t.tagline}</p>
-                        <button onclick="toggleInfo()" class="mt-4 text-indigo-600 hover:text-indigo-800 flex items-center gap-2 mx-auto">
+                        <button id="btn-info" class="mt-4 text-indigo-600 hover:text-indigo-800 flex items-center gap-2 mx-auto">
                             ℹ️ ${t.aboutTitle}
                         </button>
                         ${state.showInfo ? `
@@ -376,7 +434,7 @@
                         </h2>
                         <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
                             ${Object.entries(educationSystems).map(([key, system]) => `
-                                <button onclick="selectCountry('${key}')" class="p-6 rounded-xl font-semibold transition transform hover:scale-105 bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg hover:shadow-xl">
+                                <button data-country="${key}" class="btn-country p-6 rounded-xl font-semibold transition transform hover:scale-105 bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg hover:shadow-xl">
                                     ${system.name}
                                 </button>
                             `).join('')}
@@ -390,13 +448,13 @@
                             <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
                                 ✨ ${t.chooseClass} (${educationSystems[state.selectedCountry].name})
                             </h2>
-                            <button onclick="selectCountry('')" class="flex items-center gap-2 bg-indigo-100 text-indigo-700 px-4 py-2 rounded-lg font-semibold hover:bg-indigo-200 transition">
+                            <button id="btn-back-country" class="flex items-center gap-2 bg-indigo-100 text-indigo-700 px-4 py-2 rounded-lg font-semibold hover:bg-indigo-200 transition">
                                 ← ${t.back}
                             </button>
                         </div>
                         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                             ${Object.entries(educationSystems[state.selectedCountry].levels).map(([key, level]) => `
-                                <button onclick="selectLevel('${key}')" class="p-4 rounded-xl font-semibold transition transform hover:scale-105 bg-gray-100 text-gray-700 hover:bg-gray-200">
+                                <button data-level="${key}" class="btn-level p-4 rounded-xl font-semibold transition transform hover:scale-105 bg-gray-100 text-gray-700 hover:bg-gray-200">
                                     ${level.name}
                                 </button>
                             `).join('')}
@@ -410,13 +468,13 @@
                             <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
                                 📚 ${t.chooseSubject}
                             </h2>
-                            <button onclick="selectLevel('')" class="flex items-center gap-2 bg-indigo-100 text-indigo-700 px-4 py-2 rounded-lg font-semibold hover:bg-indigo-200 transition">
+                            <button id="btn-back-level" class="flex items-center gap-2 bg-indigo-100 text-indigo-700 px-4 py-2 rounded-lg font-semibold hover:bg-indigo-200 transition">
                                 ← ${t.back}
                             </button>
                         </div>
                         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                             ${educationSystems[state.selectedCountry].levels[state.selectedLevel].subjects.map(subject => `
-                                <button onclick="selectSubject('${subject}')" class="p-4 rounded-xl font-semibold transition transform hover:scale-105 ${state.selectedSubject === subject ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}">
+                                <button data-subject="${subject}" class="btn-subject p-4 rounded-xl font-semibold transition transform hover:scale-105 ${state.selectedSubject === subject ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}">
                                     ${subject}
                                 </button>
                             `).join('')}
@@ -425,14 +483,13 @@
                 `;
 
                 if (state.selectedSubject) {
-                    // Check if "Langues" button should be shown
                     const showLanguagesButton = state.selectedSubject !== 'LANGUES';
                     const numCols = state.showProMode && showLanguagesButton ? 'md:grid-cols-5' : 
                                     state.showProMode || showLanguagesButton ? 'md:grid-cols-4' : 'md:grid-cols-3';
                     
                     content += `
                         <div class="grid ${numCols} gap-6">
-                            <button onclick="startSession('revision')" class="bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transition transform hover:scale-105">
+                            <button data-mode="revision" class="btn-mode bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transition transform hover:scale-105">
                                 <div class="flex flex-col items-center text-center">
                                     <div class="bg-blue-100 p-4 rounded-full mb-4">
                                         <span class="text-4xl">🧠</span>
@@ -442,7 +499,7 @@
                                 </div>
                             </button>
 
-                            <button onclick="startSession('quiz')" class="bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transition transform hover:scale-105">
+                            <button data-mode="quiz" class="btn-mode bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transition transform hover:scale-105">
                                 <div class="flex flex-col items-center text-center">
                                     <div class="bg-purple-100 p-4 rounded-full mb-4">
                                         <span class="text-4xl">📝</span>
@@ -452,7 +509,7 @@
                                 </div>
                             </button>
 
-                            <button onclick="startSession('resolution')" class="bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transition transform hover:scale-105">
+                            <button data-mode="resolution" class="btn-mode bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transition transform hover:scale-105">
                                 <div class="flex flex-col items-center text-center">
                                     <div class="bg-green-100 p-4 rounded-full mb-4">
                                         <span class="text-4xl">✅</span>
@@ -463,7 +520,7 @@
                             </button>
 
                             ${state.showProMode ? `
-                            <button onclick="startSession('pro')" class="bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transition transform hover:scale-105 border-2 border-indigo-600">
+                            <button data-mode="pro" class="btn-mode bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transition transform hover:scale-105 border-2 border-indigo-600">
                                 <div class="flex flex-col items-center text-center">
                                     <div class="bg-indigo-100 p-4 rounded-full mb-4">
                                         <span class="text-4xl">🎓</span>
@@ -475,7 +532,7 @@
                             ` : ''}
                             
                             ${showLanguagesButton ? `
-                            <button onclick="showLanguagesMenu()" class="bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transition transform hover:scale-105 border-2 border-green-600">
+                            <button id="btn-show-languages" class="bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transition transform hover:scale-105 border-2 border-green-600">
                                 <div class="flex flex-col items-center text-center">
                                     <div class="bg-green-100 p-4 rounded-full mb-4">
                                         <span class="text-4xl">🌍</span>
@@ -492,19 +549,18 @@
 
             content += `</div>`;
             
-            // Show languages menu if activated
             if (state.showLanguagesMenu) {
                 content += `
-                    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onclick="hideLanguagesMenu()">
-                        <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[80vh] overflow-y-auto p-8" onclick="event.stopPropagation()">
+                    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" id="languages-overlay">
+                        <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[80vh] overflow-y-auto p-8" id="languages-modal">
                             <div class="flex justify-between items-center mb-6">
                                 <h2 class="text-3xl font-bold text-gray-800">🌍 ${t.modeLanguages}</h2>
-                                <button onclick="hideLanguagesMenu()" class="text-gray-500 hover:text-gray-700 text-3xl">&times;</button>
+                                <button id="btn-close-languages" class="text-gray-500 hover:text-gray-700 text-3xl">&times;</button>
                             </div>
                             <p class="text-gray-600 mb-6">Choisissez une langue à apprendre :</p>
                             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                                 ${availableLanguages.map(lang => `
-                                    <button onclick="startLanguageSession('${lang}')" class="p-4 rounded-xl font-semibold transition transform hover:scale-105 bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg hover:shadow-xl">
+                                    <button data-language="${lang}" class="btn-language p-4 rounded-xl font-semibold transition transform hover:scale-105 bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg hover:shadow-xl">
                                         ${lang}
                                     </button>
                                 `).join('')}
@@ -517,25 +573,10 @@
             return content;
         }
 
-        function showLanguagesMenu() {
-            state.showLanguagesMenu = true;
-            render();
-        }
-
-        function hideLanguagesMenu() {
-            state.showLanguagesMenu = false;
-            render();
-        }
-
-        function startLanguageSession(language) {
-            state.selectedSubject = 'LANGUES - ' + language;
-            state.showLanguagesMenu = false;
-            startSession('languages');
-        }
-
         function toggleInfo() {
             state.showInfo = !state.showInfo;
             render();
+            setupMenuListeners();
         }
 
         function selectCountry(country) {
@@ -543,22 +584,24 @@
             state.selectedLevel = '';
             state.selectedSubject = '';
             render();
+            setupMenuListeners();
         }
 
         function selectLevel(level) {
             state.selectedLevel = level;
             state.selectedSubject = '';
             
-            // Check if it's higher education level
             const higherEducationLevels = ['bts', 'licence', 'master', 'licence_pro', 'college', 'community_college', 'university', 'universitat', 'fachhochschule', 'universidad', 'btec', 'apprenticeship', 'berufsschule', 'vocational', 'fp_superior', 'fp_medio', 'fp_basica', 'seconde_pro', 'premiere_pro', 'terminale_pro', 'cap1', 'cap2'];
             state.showProMode = higherEducationLevels.includes(level);
             
             render();
+            setupMenuListeners();
         }
 
         function selectSubject(subject) {
             state.selectedSubject = subject;
             render();
+            setupMenuListeners();
         }
 
         function startSession(mode) {
@@ -608,6 +651,12 @@
                 } else if (state.selectedCountry === 'spain') {
                     welcomeMessage = `Bienvenido al Modo Pro para ${subject} en ${levelName}. Soy Lernen.IA y puedo ayudarte con: análisis profundos, investigación académica, redacción de tesis, metodología de investigación, análisis críticos, proyectos avanzados. ¿Cuál es tu proyecto o necesidad?`;
                 }
+            } else if (mode === 'languages') {
+                if (state.selectedCountry === 'france') {
+                    welcomeMessage = `Bienvenue dans le mode apprentissage des langues ! Je suis Lernen.IA et je vais vous aider à apprendre ${state.selectedSubject.replace('LANGUES - ', '')}. Quel est votre niveau actuel et que souhaitez-vous travailler ?`;
+                } else {
+                    welcomeMessage = `Welcome to language learning mode! I'm Lernen.IA and I'll help you learn ${state.selectedSubject.replace('LANGUES - ', '')}. What's your current level and what would you like to work on?`;
+                }
             }
             
             state.messages = [{ role: 'assistant', content: welcomeMessage }];
@@ -622,10 +671,13 @@
             state.selectedLevel = '';
             state.selectedCountry = '';
             render();
+            setupMenuListeners();
         }
 
         async function sendMessage() {
             const inputEl = document.getElementById('input-text');
+            if (!inputEl) return;
+            
             const userMessage = inputEl.value.trim();
             
             if (!userMessage || state.isLoading) return;
@@ -651,6 +703,9 @@
                     systemPrompt = `Tu es Lernen.IA, un assistant éducatif. Réponds TOUJOURS en ${systemLanguage}. Tu aides à résoudre des exercices de ${state.selectedSubject} pour le niveau ${educationSystems[state.selectedCountry].levels[state.selectedLevel].name} dans le système éducatif ${educationSystems[state.selectedCountry].name}. L'étudiant t'envoie un exercice qu'il doit résoudre. Guide-le étape par étape dans la résolution. Ne donne JAMAIS directement la solution complète. Pose des questions pour le faire réfléchir. Propose des indices progressifs. Aide-le à comprendre chaque étape du raisonnement. Félicite ses bonnes réponses et aide-le à corriger ses erreurs. Si on te demande qui tu es, réponds: "Je suis Lernen.IA, développé par Jules, un étudiant de St François d'Assise en Bac Pro CIEL. Pour plus d'informations, visitez mon Instagram: https://www.instagram.com/jules_mat_/ ou mon GitHub: https://github.com/Jules446"`;
                 } else if (state.mode === 'pro') {
                     systemPrompt = `Tu es Lernen.IA Pro, un assistant éducatif avancé pour études supérieures. Réponds TOUJOURS en ${systemLanguage}. Tu assistes des étudiants en ${state.selectedSubject} de niveau ${educationSystems[state.selectedCountry].levels[state.selectedLevel].name}. Tu peux : analyser en profondeur des concepts complexes, aider à la recherche académique, guider la rédaction de mémoires et thèses, enseigner la méthodologie de recherche, effectuer des analyses critiques de sources, aider sur des projets avancés et spécialisés. Adopte un ton professionnel mais accessible. Fournis des réponses détaillées avec références théoriques quand approprié. Encourage la pensée critique et l'autonomie intellectuelle. Si on te demande qui tu es, réponds: "Je suis Lernen.IA, développé par Jules, un étudiant de St François d'Assise en Bac Pro CIEL. Pour plus d'informations, visitez mon Instagram: https://www.instagram.com/jules_mat_/ ou mon GitHub: https://github.com/Jules446"`;
+                } else if (state.mode === 'languages') {
+                    const targetLang = state.selectedSubject.replace('LANGUES - ', '');
+                    systemPrompt = `Tu es Lernen.IA, un assistant pour l'apprentissage des langues. Réponds TOUJOURS en ${systemLanguage}. Tu aides l'étudiant à apprendre ${targetLang}. Propose des exercices, des explications grammaticales, du vocabulaire, et des conseils de prononciation. Adapte ton enseignement au niveau de l'étudiant. Sois patient et encourageant. Si on te demande qui tu es, réponds: "Je suis Lernen.IA, développé par Jules, un étudiant de St François d'Assise en Bac Pro CIEL. Pour plus d'informations, visitez mon Instagram: https://www.instagram.com/jules_mat_/ ou mon GitHub: https://github.com/Jules446"`;
                 }
 
                 const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -688,13 +743,6 @@
             }
         }
 
-        function handleKeyPress(event) {
-            if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault();
-                sendMessage();
-            }
-        }
-
         function scrollToBottom() {
             setTimeout(() => {
                 const container = document.getElementById('messages-container');
@@ -704,15 +752,124 @@
             }, 100);
         }
 
-        // Listen for input changes
-        document.addEventListener('input', (e) => {
-            if (e.target.id === 'input-text') {
-                state.inputText = e.target.value;
+        function showLanguagesMenu() {
+            state.showLanguagesMenu = true;
+            render();
+            setupMenuListeners();
+        }
+
+        function hideLanguagesMenu() {
+            state.showLanguagesMenu = false;
+            render();
+            setupMenuListeners();
+        }
+
+        function startLanguageSession(language) {
+            state.selectedSubject = 'LANGUES - ' + language;
+            state.showLanguagesMenu = false;
+            startSession('languages');
+        }
+
+        function setupMenuListeners() {
+            // Info button
+            const btnInfo = document.getElementById('btn-info');
+            if (btnInfo) {
+                btnInfo.addEventListener('click', toggleInfo);
             }
-        });
+
+            // Country buttons
+            document.querySelectorAll('.btn-country').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    selectCountry(btn.dataset.country);
+                });
+            });
+
+            // Back to country button
+            const btnBackCountry = document.getElementById('btn-back-country');
+            if (btnBackCountry) {
+                btnBackCountry.addEventListener('click', () => {
+                    selectCountry('');
+                });
+            }
+
+            // Level buttons
+            document.querySelectorAll('.btn-level').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    selectLevel(btn.dataset.level);
+                });
+            });
+
+            // Back to level button
+            const btnBackLevel = document.getElementById('btn-back-level');
+            if (btnBackLevel) {
+                btnBackLevel.addEventListener('click', () => {
+                    selectLevel('');
+                });
+            }
+
+            // Subject buttons
+            document.querySelectorAll('.btn-subject').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    selectSubject(btn.dataset.subject);
+                });
+            });
+
+            // Mode buttons
+            document.querySelectorAll('.btn-mode').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    startSession(btn.dataset.mode);
+                });
+            });
+
+            // Show languages button
+            const btnShowLanguages = document.getElementById('btn-show-languages');
+            if (btnShowLanguages) {
+                btnShowLanguages.addEventListener('click', showLanguagesMenu);
+            }
+
+            // Close languages modal
+            const btnCloseLanguages = document.getElementById('btn-close-languages');
+            if (btnCloseLanguages) {
+                btnCloseLanguages.addEventListener('click', hideLanguagesMenu);
+            }
+
+            // Languages overlay
+            const languagesOverlay = document.getElementById('languages-overlay');
+            if (languagesOverlay) {
+                languagesOverlay.addEventListener('click', hideLanguagesMenu);
+            }
+
+            // Languages modal (prevent close when clicking inside)
+            const languagesModal = document.getElementById('languages-modal');
+            if (languagesModal) {
+                languagesModal.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                });
+            }
+
+            // Language buttons
+            document.querySelectorAll('.btn-language').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    startLanguageSession(btn.dataset.language);
+                });
+            });
+
+            // Reset button in chat
+            const btnReset = document.getElementById('btn-reset');
+            if (btnReset) {
+                btnReset.addEventListener('click', resetSession);
+            }
+
+            // Send button in chat
+            const btnSend = document.getElementById('btn-send');
+            if (btnSend) {
+                btnSend.addEventListener('click', sendMessage);
+            }
+        }
 
         // Initial render
         render();
+        setupMenuListeners();
     </script>
 </body>
 </html>
